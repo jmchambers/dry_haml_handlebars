@@ -1,5 +1,37 @@
 module DryHamlHandlebars
   
+  def self.load_all_partials
+    
+    hbs_context = HandlebarsAssets::Handlebars.send(:context)
+    
+    partials = Dir.glob(Rails.root.join('app', 'assets', 'compiled_templates', '*', '_*.js'))
+    partials.each do |fname|
+      basename = File.basename(fname)
+      File.open(fname) do |file|
+        hbs_context.eval(file.read, basename)
+      end
+    end
+    
+  end
+  
+  def self.load_all_helpers
+
+    #NOTE: only a change to a view will make rail pick up on a change to the helpers     
+    hbs_context = HandlebarsAssets::Handlebars.send(:context)
+
+    handlebars_helpers = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '*', '*.js'))
+    handlebars_helpers.each do |fname|
+      basename = File.basename(fname)
+      File.open(fname) do |file|
+        source = file.read.strip
+        source = source[0..-2] if source[-1] == ';'
+        hbs_context.eval(source, basename)
+        hbs_context.eval('HandlebarsHelpers.load_helpers()')
+      end
+    end
+
+  end
+  
   require 'haml/template/plugin'
   
   class Handler < Haml::Plugin
@@ -15,9 +47,11 @@ module DryHamlHandlebars
         
         return super if @view_type == :layout
         
-        get_safe_view_name
+        get_safe_view_names
         generate_file_names
         env = Rails.env.to_s
+        
+        out = []
         
         if ["development", "test"].include?(env) or !File.exist?(@compiled_template_filename)
           
@@ -25,30 +59,45 @@ module DryHamlHandlebars
                           rendered_haml = eval(%q( #{super} )).html_safe
                         RUBY
         
-          out =  [render_haml]
+          out << render_haml
           out << compile_hbs
-          out << name_templates
-          out << gen_template_loader   if @view_type == :template
-          out << gen_partial_loader    if @view_type == :partial
+          
+          if @view_type == :template
+            
+            out << name_template             #TODO: trace problem for this
+            out << gen_template_loader
+            
+          elsif @view_type == :partial
+            
+            out << name_partial
+            out << gen_partial_loader
+            
+          end
+
           out << write_asset_files
                     
         elsif env == "production"
-          
-          #no special actions for now
 
+          out << name_template
+          
         else
-          
-          raise "don't have a workflow for the #{env} environment"
-
+          #raise "don't have a workflow for the #{env} environment"
         end
         
         #common actions
         #TODO: add setup steps to register partials and helpers i.e. build the same environment here that the client has
+        #TODO: consider an option to pre-load all templates, partials and/or helpers in production
 
         out << load_template
-        out << render_rabl(template)   if @view_type == :template and File.exist? @rabl_filename
-        out << render_template         if @view_type == :template
+        
+        if @view_type == :template
+          out << render_rabl(template)
+          out << render_template
+        end
+        
         out.join("\n")
+        
+        #"'<div>foo</div>'"
 
       end
       
@@ -72,7 +121,7 @@ module DryHamlHandlebars
         
       end
       
-      def get_safe_view_name
+      def get_safe_view_names
       
         @view_name =  case @original_view_name
                       when "application", "index"
@@ -80,6 +129,8 @@ module DryHamlHandlebars
                       else
                         @original_view_name
                       end
+                      
+        @partial_name = @original_view_name[1..-1] if @view_type == :partial
                     
       end
       
@@ -99,13 +150,19 @@ module DryHamlHandlebars
       
       def compile_hbs
         <<-RUBY
-          precompiled_hbs = HandlebarsAssets::Handlebars.precompile( rendered_haml )
+          compiled_hbs = HandlebarsAssets::Handlebars.precompile( rendered_haml )
         RUBY
       end
       
-      def name_templates
+      def name_template
         <<-RUBY
           template_name = '#{File.join(@relative_view_path, @view_name).to_s}'
+        RUBY
+      end
+      
+      def name_partial
+        <<-RUBY
+          partial_name  = '#{@partial_name}'
         RUBY
       end
       
@@ -113,7 +170,7 @@ module DryHamlHandlebars
         <<-'RUBY'
           hbs_loader = "(function() {
             this.HandlebarsTemplates || (this.HandlebarsTemplates = {});
-            this.HandlebarsTemplates['#{template_name}'] = Handlebars.template(#{precompiled_hbs});
+            this.HandlebarsTemplates['#{template_name}'] = Handlebars.template(#{compiled_hbs});
             return HandlebarsTemplates['#{template_name}'];
           }).call(this)"
         RUBY
@@ -122,10 +179,7 @@ module DryHamlHandlebars
       def gen_partial_loader
         <<-'RUBY'
           hbs_loader = "(function() {
-            Handlebars.registerPartial(#{template_name}, Handlebars.template(#{precompiled_hbs}));
-            this.HandlebarsTemplates || (this.HandlebarsTemplates = {});
-            this.HandlebarsTemplates['#{template_name}'] = Handlebars.template(#{precompiled_hbs});
-            return HandlebarsTemplates['#{template_name}'];
+            this.Handlebars.registerPartial('#{partial_name}', Handlebars.template(#{compiled_hbs}));
           }).call(this)"
         RUBY
       end
@@ -147,14 +201,24 @@ module DryHamlHandlebars
       end
       
       def render_rabl(template)
+        
+        if File.exist? @rabl_filename
       
-        rabl_handler  = ActionView::Template.handler_for_extension :rabl
-        rabl_template = ActionView::Template.new([], @rabl_filename, rabl_handler, {:locals => template.locals})
-        rabl_call     = rabl_handler.call rabl_template
-
-        <<-RUBY
-          rendered_rabl = eval(%q( #{rabl_call} )).html_safe
-        RUBY
+          rabl_handler  = ActionView::Template.handler_for_extension :rabl
+          rabl_template = ActionView::Template.new([], @rabl_filename, rabl_handler, {:locals => template.locals})
+          rabl_call     = rabl_handler.call rabl_template
+  
+          <<-RUBY
+            rendered_rabl = eval(%q( #{rabl_call} )).html_safe
+          RUBY
+          
+        else
+          
+          <<-RUBY
+            rendered_rabl = '{}'.html_safe
+          RUBY
+          
+        end
         
       end
       
