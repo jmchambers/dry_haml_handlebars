@@ -1,12 +1,16 @@
 require "dry_haml_handlebars/version"
-require "haml-rails"
-require "handlebars"
+require "tilt"
+require "execjs"
+require "handlebars_assets"
+#require "draper"
+#require_relative "draper/base" #patch
+#require_relative "draper/handlebar_helpers"
+require 'haml'
 require "dry_haml_handlebars/asset_helper"
-require "draper"
-require_relative "draper/base" #patch
-require_relative "draper/handlebar_helpers"
-
-ActionView::Base.send :include, DryHamlHandlebars::AssetHelper
+require "dry_haml_handlebars/handler"
+require "dry_haml_handlebars/register"
+require "haml-rails"
+require "rabl"
 
 module DryHamlHandlebars
   class Railtie < Rails::Railtie
