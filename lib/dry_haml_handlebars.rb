@@ -16,7 +16,7 @@ module DryHamlHandlebars
     end
     
     config.to_prepare do
-      DryHamlHandlebars.load_all_partials if Rails.env.to_s == "production"
+      DryHamlHandlebars.load_all_partials if Rails.env.to_sym == :production
       DryHamlHandlebars.load_all_helpers
     end
     
