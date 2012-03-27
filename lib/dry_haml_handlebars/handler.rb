@@ -57,6 +57,7 @@ module DryHamlHandlebars
         
         if @view_type == :template
           out << render_rabl(template)
+          out << set_gon_variable
           out << render_template
         end
         
@@ -183,6 +184,14 @@ module DryHamlHandlebars
           
         end
         
+      end
+      
+      def set_gon_variable
+        <<-RUBY
+          Gon.request = request.object_id
+          Gon.request_env = request.env
+          Gon.set_variable('view_data', JSON.parse(rendered_rabl))
+        RUBY
       end
       
       def render_template
