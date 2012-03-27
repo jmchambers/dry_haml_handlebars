@@ -1,37 +1,5 @@
 module DryHamlHandlebars
   
-  def self.load_all_partials
-    
-    hbs_context = HandlebarsAssets::Handlebars.send(:context)
-    
-    partials = Dir.glob(Rails.root.join('app', 'assets', 'compiled_templates', '*', '_*.js'))
-    partials.each do |fname|
-      basename = File.basename(fname)
-      File.open(fname) do |file|
-        hbs_context.eval(file.read, basename)
-      end
-    end
-    
-  end
-  
-  def self.load_all_helpers
-
-    #NOTE: only a change to a view will make rail pick up on a change to the helpers     
-    hbs_context = HandlebarsAssets::Handlebars.send(:context)
-
-    handlebars_helpers = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '*', '*.js'))
-    handlebars_helpers.each do |fname|
-      basename = File.basename(fname)
-      File.open(fname) do |file|
-        source = file.read.strip
-        source = source[0..-2] if source[-1] == ';'
-        hbs_context.eval(source, basename)
-        hbs_context.eval('HandlebarsHelpers.load_helpers()')
-      end
-    end
-
-  end
-  
   require 'haml/template/plugin'
   
   class Handler < Haml::Plugin
@@ -64,7 +32,7 @@ module DryHamlHandlebars
           
           if @view_type == :template
             
-            out << name_template             #TODO: trace problem for this
+            out << name_template
             out << gen_template_loader
             
           elsif @view_type == :partial
@@ -85,9 +53,6 @@ module DryHamlHandlebars
         end
         
         #common actions
-        #TODO: add setup steps to register partials and helpers i.e. build the same environment here that the client has
-        #TODO: consider an option to pre-load all templates, partials and/or helpers in production
-
         out << load_template
         
         if @view_type == :template
@@ -96,8 +61,6 @@ module DryHamlHandlebars
         end
         
         out.join("\n")
-        
-        #"'<div>foo</div>'"
 
       end
       
@@ -230,6 +193,42 @@ module DryHamlHandlebars
       
     end
   end
+  
+  
+  #DryHamlHandlebars module methods
+  
+  def self.load_all_partials
+    
+    hbs_context = HandlebarsAssets::Handlebars.send(:context)
+    
+    partials = Dir.glob(Rails.root.join('app', 'assets', 'compiled_templates', '*', '_*.js'))
+    partials.each do |fname|
+      basename = File.basename(fname)
+      File.open(fname) do |file|
+        hbs_context.eval(file.read, basename)
+      end
+    end
+    
+  end
+  
+  def self.load_all_helpers
+
+    #NOTE: only a change to a view will make rail pick up on a change to the helpers     
+    hbs_context = HandlebarsAssets::Handlebars.send(:context)
+
+    handlebars_helpers = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '*', '*.js'))
+    handlebars_helpers.each do |fname|
+      basename = File.basename(fname)
+      File.open(fname) do |file|
+        source = file.read.strip
+        source = source[0..-2] if source[-1] == ';' #remove trailing semi-colon because it makes execjs.eval cry
+        hbs_context.eval(source, basename)
+        hbs_context.eval('HandlebarsHelpers.load_helpers()')
+      end
+    end
+
+  end
+  
 end
 
 

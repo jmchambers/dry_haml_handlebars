@@ -1,12 +1,7 @@
 require "dry_haml_handlebars/version"
-require "tilt"
-require "execjs"
+require "v8"
 require "handlebars_assets"
-#require "draper"
-#require_relative "draper/base" #patch
-#require_relative "draper/handlebar_helpers"
 require 'haml'
-require "dry_haml_handlebars/asset_helper"
 require "dry_haml_handlebars/handler"
 require "dry_haml_handlebars/register"
 require "haml-rails"
