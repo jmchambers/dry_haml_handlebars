@@ -11,10 +11,10 @@ module DryHamlHandlebars
         view_match           = template.identifier.match(/^#{Rails.root.join('app', 'views')}[\/](?<view_path>\w+)[\/](?<view_name>\w+).html/)
         @relative_view_path  = view_match[:view_path]
         @original_view_name  = view_match[:view_name]
-        get_view_type
+        get_view_type(template)
         
-        return super if @view_type == :layout
-        
+        return super if [:layout, :ignored_partial].include? @view_type
+
         get_safe_view_names
         generate_file_names
         env = Rails.env.to_sym
@@ -46,25 +46,14 @@ module DryHamlHandlebars
           out << write_asset_files
                     
         elsif env == :production
-          
-          if template.locals.include? 'force_render' #only fill in the eval below if there's a chance force_render might be set to true
-            
-            render_haml_if_force_render = <<-RUBY
-              if defined?(force_render) and force_render == true 
-                rendered_haml = eval(%q( #{super} )).html_safe
-              end
-            RUBY
-            
-          end
 
-          out << render_haml_if_force_render if @view_type == :partial
           out << name_template
           
         else
           #raise "don't have a workflow for the #{env} environment"
         end
         
-        #common actions
+        #actions common to all environments
         out << load_template
         
         case @view_type
@@ -76,7 +65,7 @@ module DryHamlHandlebars
           
         when :partial
           
-          out << return_rendered_haml_if_defined
+          out << render_handlebars_partial_command
           
         end
         
@@ -88,7 +77,7 @@ module DryHamlHandlebars
       
      
       
-      def get_view_type
+      def get_view_type(template)
         
         #we have three types of view;
         # 1) layout   - always handled by haml, no hbs/js versions are generated
@@ -97,8 +86,10 @@ module DryHamlHandlebars
         
         @view_type =  if @relative_view_path == 'layouts'
                         :layout
-                      elsif @original_view_name.starts_with? "_"
+                      elsif template.locals.inspect.include?("handlebars_partial")
                         :partial
+                      elsif @original_view_name.starts_with? "_"
+                        :ignored_partial
                       else
                         :template
                       end
@@ -220,26 +211,9 @@ module DryHamlHandlebars
         RUBY
       end
       
-      def return_rendered_haml_if_defined
+      def render_handlebars_partial_command
         <<-RUBY
-          if defined?(rendered_haml) && defined?(force_render) and force_render == true
-            rendered_haml 
-          else
-            msg = <<-INFO
-                    <hr>
-                    The haml wasn't rendered for the #{@partial_name} partial.</br>
-                    If you were expecting it to be use:</br>
-                      <pre>
-                       = render '#{@partial_name}', :force_render => true
-                      </pre>
-                    If you didn't want to render the haml, you can hide this message by using '-' instead of '=', i.e.:
-                      <pre>
-                      - render '#{@partial_name}'
-                      </pre>
-                    <hr>
-                  INFO
-            msg.html_safe
-          end
+          return '{{> #{@partial_name}}}'.html_safe
         RUBY
       end
       

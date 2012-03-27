@@ -7,6 +7,7 @@ require "dry_haml_handlebars/register"
 require "haml-rails"
 require "rabl"
 require "gon"
+require_relative "action_view/base"
 
 module DryHamlHandlebars
   class Railtie < Rails::Railtie
