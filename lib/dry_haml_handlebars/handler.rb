@@ -162,7 +162,7 @@ module DryHamlHandlebars
             #it doesn't matter about the other variables as we're finished with them by this stage
             #and it keeps the eval code simpler if we just reuse them
             
-            out << render_cache_content(name, path)
+            out << render_content_for(name, path)
             
           end
           content_cache.clear #just to be sure
@@ -278,10 +278,10 @@ module DryHamlHandlebars
       RUBY
     end
     
-    def render_cache_content(name, path)
+    def render_content_for(name, path)
       
       haml_handler  = ActionView::Template.handler_for_extension :haml
-      haml_source   = File.open(path) { |f| f.read }
+      haml_source   = File.read(path)
       haml_template = ActionView::Template.new(haml_source, path, haml_handler, {})
       haml_call     = haml_handler.call haml_template
 
@@ -292,42 +292,6 @@ module DryHamlHandlebars
     end
       
     
-  end
-  
-  
-  
-  #DryHamlHandlebars module methods
-  
-  def self.load_all_partials
-    
-    hbs_context = HandlebarsAssets::Handlebars.send(:context)
-    
-    partials = Dir.glob(Rails.root.join('app', 'assets', 'compiled_templates', '*', '_*.js'))
-    partials.each do |fname|
-      basename = File.basename(fname)
-      File.open(fname) do |file|
-        hbs_context.eval(file.read, basename)
-      end
-    end
-    
-  end
-  
-  def self.load_all_helpers
-
-    #NOTE: only a change to a view will make rail pick up on a change to the helpers     
-    hbs_context = HandlebarsAssets::Handlebars.send(:context)
-
-    handlebars_helpers = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '*', '*.js'))
-    handlebars_helpers.each do |fname|
-      basename = File.basename(fname)
-      File.open(fname) do |file|
-        source = file.read.strip
-        source = source[0..-2] if source[-1] == ';' #remove trailing semi-colon because it makes execjs.eval cry
-        hbs_context.eval(source, basename)
-        hbs_context.eval('HandlebarsHelpers.load_helpers()')
-      end
-    end
-
   end
   
 end
