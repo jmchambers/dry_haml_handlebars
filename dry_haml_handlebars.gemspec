@@ -18,12 +18,12 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
   
-  s.add_dependency "rails",             ">= 3.2.0"
+  s.add_dependency "rails",             "~> 3.2.0"
   s.add_dependency "therubyracer"
-  s.add_dependency "haml-rails",        ">= 0.3.4"
-  s.add_dependency "handlebars_assets", ">= 0.4.1"
-  s.add_dependency "rabl",              ">= 0.6.2"
-  s.add_dependency "gon",               ">= 2.2.2"
+  s.add_dependency "haml-rails",        "~> 0.3.4"
+  s.add_dependency "handlebars_assets", "~> 0.4.4"
+  s.add_dependency "rabl",              "~> 0.6.12"
+  s.add_dependency "gon",               "~> 3.0.2"
   
   s.license       = 'MIT'
   

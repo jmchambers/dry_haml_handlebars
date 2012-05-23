@@ -18,12 +18,24 @@ module ActionController
       when Symbol
         
         name = identifier
-        view_folder = Rails.root.join( *%w[app views] << params[:controller] << params[:action] ).to_s
-        possible_filenames = [
-          "#{params[:action]}_content_for_#{name}",
-          "content_for_#{name}"
+        
+        possible_folders = [
+          Rails.root.join( *%w[app views] << params[:controller] ).to_s,
+          Rails.root.join( *%w[app views application] ).to_s
         ]
-        possible_paths = possible_filenames.map { |fname| Rails.root.join( *%w[app views] << params[:controller] << "#{fname}.html.haml" ).to_s }
+        
+        possible_filenames = [
+          "#{params[:action]}_content_for_#{name}.html.haml",
+          "content_for_#{name}.html.haml"
+        ]
+        
+        possible_paths = []
+        
+        possible_folders.each do |folder|
+          possible_filenames.each do |fname|
+            possible_paths << File.join( folder, fname )
+          end
+        end
         path = possible_paths.find { |p| File.exist?(p) }
         raise "couldn't find any of the following expected files:\n#{possible_paths.join("\n")}" if path.nil?
         

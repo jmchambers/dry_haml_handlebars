@@ -8,13 +8,13 @@ module DryHamlHandlebars
               
       view_match         = template.identifier.match(/^#{Rails.root.join('app', 'views')}[\/](?<view_path>\w+)[\/](?<view_name>\w+).html/)
       relative_view_path = view_match[:view_path]
-      original_view_name = view_match[:view_name]
-      view_type          = get_view_type(template, relative_view_path, original_view_name)
+      view_name          = view_match[:view_name]
+      view_type          = get_view_type(template, relative_view_path, view_name)
       
       return super if [:layout, :ignored_partial].include? view_type
 
-      view_name, partial_name = get_safe_view_names(original_view_name, view_type)
-      rabl_path, template_path, compiled_template_path = generate_file_names(relative_view_path, original_view_name, view_name)
+      partial_name = view_name[1..-1]
+      rabl_path, template_path, compiled_template_path = generate_file_names(relative_view_path, view_name)
       
       env = Rails.env.to_sym
 
@@ -42,7 +42,7 @@ module DryHamlHandlebars
         
     end
       
-    def self.get_view_type(template, relative_view_path, original_view_name)
+    def self.get_view_type(template, relative_view_path, view_name)
       
       #we have 4 types of view;
       # 1) layout           - always handled by haml, no hbs/js versions are generated
@@ -54,7 +54,7 @@ module DryHamlHandlebars
         :layout
       elsif template.locals.inspect.include?("handlebars_partial")
         :partial
-      elsif original_view_name.starts_with? "_"
+      elsif view_name.starts_with? "_"
         :ignored_partial
       else
         :template
@@ -62,27 +62,12 @@ module DryHamlHandlebars
             
     end
     
-    def self.get_safe_view_names(original_view_name, view_type)
-
-      case view_type
-      when :template
-        view_name    = "hbs_#{original_view_name}"
-        partial_name = nil
-      when :partial
-        view_name    = "_hbs#{original_view_name}"
-        partial_name = view_name[1..-1]
-      end
-
-      return view_name, partial_name
-                  
-    end
-    
-    def self.generate_file_names(relative_view_path, original_view_name, view_name)
+    def self.generate_file_names(relative_view_path, view_name)
       
       template_partial_path           = Rails.root.join( *%w(app assets templates)          << "#{relative_view_path}" )
       compiled_template_partial_path  = Rails.root.join( *%w(app assets compiled_templates) << "#{relative_view_path}" )
       
-      rabl_path               = Rails.root.join( 'app', 'views', relative_view_path, "#{original_view_name}.rabl" )
+      rabl_path               = Rails.root.join( 'app', 'views', relative_view_path, "#{view_name}.rabl" )
       template_path           = File.join( template_partial_path, "#{view_name}.hbs" )
       compiled_template_path  = File.join( compiled_template_partial_path, "#{view_name}.js" )
       
@@ -258,10 +243,10 @@ module DryHamlHandlebars
     end
     
     def set_gon_variable
-      <<-RUBY
-        Gon.request = request.object_id
-        Gon.request_env = request.env
-        Gon.set_variable('view_data', JSON.parse(rendered_rabl))
+      <<-'RUBY'
+        Gon::Request.id  = request.object_id
+        Gon::Request.env = request.env
+        Gon.view_data = JSON.parse(rendered_rabl)
       RUBY
     end
     
