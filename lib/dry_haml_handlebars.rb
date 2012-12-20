@@ -20,8 +20,10 @@ module DryHamlHandlebars
     end
     
     config.to_prepare do
-      DryHamlHandlebars.load_all_partials if Rails.env.to_sym == :production
-      DryHamlHandlebars.load_all_helpers
+      # this is only called once in dev mode and not on every request as it is meant to
+      # just manually call DryHamlHandlebars.prepare_handlebars if you change/add a helper
+      # see https://github.com/rails/rails/issues/7152
+      DryHamlHandlebars.prepare_handlebars
     end
     
   end
@@ -66,41 +68,60 @@ module DryHamlHandlebars
     @content_cache
   end
   
-  def self.load_all_partials
+  def self.prepare_handlebars(additional_javascripts = [])
+    
+    additional_javascripts = Array.wrap(additional_javascripts)
+    
+    compile_all_helper_coffeescripts
+    #load_i18n if defined? SimplesIdeias::I18n
     
     hbs_context = HandlebarsAssets::Handlebars.send(:context)
     
-    partials = Dir.glob(Rails.root.join('app', 'assets', 'compiled_templates', '*', '_*.js'))
-    partials.each do |fname|
+    templates_and_partials = Dir.glob(Rails.root.join('app', 'assets', 'compiled_templates', '**', '*.js'))
+    handlebars_helpers     = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '**', '*.js'))
+
+    self_loading_assets = templates_and_partials + handlebars_helpers + additional_javascripts
+
+    self_loading_assets.each do |fname|
       basename = File.basename(fname)
       File.open(fname) do |file|
-        hbs_context.eval(file.read, basename)
-      end
-    end
-    
-  end
-  
-  def self.load_all_helpers
-    
-    compile_all_coffeescripts
-
-    #NOTE: only a change to a view will make rail pick up on a change to the helpers     
-    hbs_context = HandlebarsAssets::Handlebars.send(:context)
-
-    handlebars_helpers = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '*', '*.js'))
-    handlebars_helpers.each do |fname|
-      basename = File.basename(fname)
-      File.open(fname) do |file|
-        source = file.read.strip
-        source = source[0..-2] if source[-1] == ';' #remove trailing semi-colon because it makes execjs.eval cry
+        source = file.read
+        source.strip!
+        source.chomp!(";")
         hbs_context.eval(source, basename)
-        hbs_context.eval('HandlebarsHelpers.load_helpers()')
       end
     end
-
   end
   
-  def self.compile_all_coffeescripts
+  def self.load_i18n
+    
+    hbs_context = HandlebarsAssets::Handlebars.send(:context)
+    
+    @i18n_js_path ||= Rails.application.config.assets.paths.find { |fname| fname.match(/i18n-js-[.\d]+\/vendor\/assets\/javascripts/) }
+    fname    = "#{@i18n_js_path}/i18n.js"
+    source   = File.read(fname).gsub(
+      "var I18n = I18n || {};",
+      "this.I18n || (this.I18n = {});"
+    )
+    
+    json_translations = SimplesIdeias::I18n.translation_segments.each_with_object({}) do |(name, segment),translations|
+      translations.merge!(segment)
+    end.to_json
+
+    load_script = <<-JAVASCRIPT
+      (function(){
+        #{source}
+        I18n.translations   = #{json_translations};
+        I18n.defaultLocale  = #{I18n.default_locale.to_s.inspect};
+        I18n.fallbacksRules = #{I18n.fallbacks.to_json};
+        I18n.fallbacks      = true;
+      }).call(this)
+    JAVASCRIPT
+    
+    hbs_context.eval load_script
+  end
+  
+  def self.compile_all_helper_coffeescripts
     handlebars_helpers = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '*', '*.coffee'))
     js_directory       = Rails.root.join('app', 'assets', 'handlebars_helpers', 'javascripts').to_s
     handlebars_helpers.each do |coffee_path|
@@ -114,7 +135,8 @@ module DryHamlHandlebars
         
         #if so, compile coffee and overwrite/create the js
         coffee     = File.read(coffee_path)
-        javascript = CoffeeScript.compile(coffee)
+        javascript = CoffeeScript.compile(coffee).strip
+        javascript = javascript[0..-2] if javascript[-1] == ';' #remove trailing semi-colon because it makes execjs.eval cry
         
         FileUtils.mkdir_p js_directory unless File.directory? js_directory
         File.open(js_path, 'w+') { |f| f.write(javascript) }

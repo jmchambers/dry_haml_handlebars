@@ -10,16 +10,16 @@ module ActionView
         
         options = args.first
         options[:locals] ||= {}
-        options[:locals].merge!(:handlebars_partial => true)
+        options[:locals].merge!(:__handlebars_partial => true)
         
       elsif args.last.is_a?(Hash)
         
         locals = args.last
-        locals[:handlebars_partial] = true
+        locals[:__handlebars_partial] = true
       
       else
 
-        args << {:handlebars_partial => true}
+        args << {:__handlebars_partial => true}
 
       end
       

@@ -21,8 +21,8 @@ Gem::Specification.new do |s|
   s.add_dependency "rails",             "~> 3.2.0"
   s.add_dependency "therubyracer"
   s.add_dependency "haml-rails",        "~> 0.3.4"
-  s.add_dependency "handlebars_assets", "~> 0.4.4"
-  s.add_dependency "rabl",              "~> 0.6.12"
+  s.add_dependency "handlebars_assets", "~> 0.4.4" # was "~> 0.4.4"
+  s.add_dependency "rabl",              "0.7.1"   # "0.6.12"    #this is locked down because the author's minor increments consistently break everything, grrrrr!
   s.add_dependency "gon",               "~> 3.0.2"
   
   s.license       = 'MIT'
