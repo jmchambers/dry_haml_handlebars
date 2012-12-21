@@ -7,11 +7,6 @@ require "dry_haml_handlebars/register"
 require "haml-rails"
 require "rabl"
 require "gon"
-require 'action_view'
-require 'action_controller'
-require_relative "action_view/base"
-require_relative "action_view/helpers/capture_helper"
-require_relative "action_controller/base"
 
 module DryHamlHandlebars
   
@@ -26,6 +21,20 @@ module DryHamlHandlebars
       # just manually call DryHamlHandlebars.prepare_handlebars if you change/add a helper
       # see https://github.com/rails/rails/issues/7152
       DryHamlHandlebars.prepare_handlebars
+    end
+    
+    initializer "dry_haml_handlebars.configure" do |app|
+
+      ActiveSupport.on_load :action_view do
+        require 'dry_haml_handlebars/view_helpers/action_view'
+        include DryHamlHandlebars::ViewHelpers::ActionView
+      end
+      
+      ActiveSupport.on_load :action_controller do
+        require 'dry_haml_handlebars/controller_helpers/action_controller'
+        include DryHamlHandlebars::ControllerHelpers::ActionController
+      end
+      
     end
     
   end
