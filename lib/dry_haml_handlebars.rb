@@ -7,6 +7,8 @@ require "dry_haml_handlebars/register"
 require "haml-rails"
 require "rabl"
 require "gon"
+require 'action_view'
+require 'action_controller'
 require_relative "action_view/base"
 require_relative "action_view/helpers/capture_helper"
 require_relative "action_controller/base"
