@@ -1,3 +1,5 @@
+include ActionView::Helpers
+
 module ActionView
   module Helpers
     module CaptureHelper
