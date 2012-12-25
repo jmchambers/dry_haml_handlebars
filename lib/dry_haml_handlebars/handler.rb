@@ -69,7 +69,7 @@ module DryHamlHandlebars
         #even if the dev forgets to run the view that requires a changed partial
         #the rule is, render ANY page, and ALL partials should be re-compiled (if needed)
         #while for changed templates, you MUST run the view that you have changed
-        if DryHamlHandlebars.on_next_request.values.any?
+        if DryHamlHandlebars.on_next_request and DryHamlHandlebars.on_next_request.values.any?
           DryHamlHandlebars.on_next_request.keys.each do |method|
             DryHamlHandlebars.on_next_request[method] = false
             case method
