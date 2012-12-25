@@ -88,6 +88,21 @@ module DryHamlHandlebars
   
         partial_name = [relative_view_path.gsub('/', '_'), view_name[1..-1]].join('_')
         rabl_path, template_path, compiled_template_path = generate_file_names(relative_view_path, view_name)
+        
+        Rails.logger.info <<-INFO_STRING
+          template_path = #{template_path}
+          options[:force_handlebars_compile] = #{options[:force_handlebars_compile]}
+          File.exist?(compiled_template_path) = #{File.exist?(compiled_template_path)}
+          env = #{env}
+        INFO_STRING
+        
+        if [:development, :test].include?(env)
+          Rails.logger.info <<-INFO_STRING
+            File.mtime(compiled_template_path) = #{File.mtime(compiled_template_path)}
+            File.mtime(template.identifier) = #{File.mtime(template.identifier)}
+          INFO_STRING
+        end
+        
         if options[:force_handlebars_compile] or !File.exist?(compiled_template_path) or ( [:development, :test].include?(env) and ( File.mtime(compiled_template_path) < File.mtime(template.identifier) ) )
           source = template.source
           source = DryHamlHandlebars.dedent_hbs(source)
@@ -299,6 +314,7 @@ module DryHamlHandlebars
     
     def write_asset_files
       <<-RUBY
+        Rails.logger.info "WRITING TEMPLATES TO FILE SYSTEM (#{@template_path})"
         File.open('#{@template_path}',          'w+') {|f| f.write(rendered_haml) }
         File.open('#{@compiled_template_path}', 'w+') {|f| f.write(hbs_loader) }
       RUBY
