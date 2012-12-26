@@ -92,6 +92,8 @@ module DryHamlHandlebars
     handlebars_helpers     = Dir.glob(Rails.root.join('app', 'assets', 'handlebars_helpers', '**', '*.js'))
 
     self_loading_assets = templates_and_partials + handlebars_helpers + additional_javascripts
+    
+    Rails.logger.info "self_loading_assets = #{self_loading_assets}"
 
     self_loading_assets.each do |fname|
       basename = File.basename(fname)
@@ -99,6 +101,7 @@ module DryHamlHandlebars
         source = file.read
         source.strip!
         source.chomp!(";")
+        Rails.logger.info "about to run:\nhbs_context.eval(#{source}, #{basename})"
         hbs_context.eval(source, basename)
       end
     end
