@@ -16,12 +16,12 @@ module DryHamlHandlebars
       app.config.autoload_paths += %W(#{app.config.root}/app/views)
     end
     
-    config.to_prepare do
-      # this is only called once in dev mode and not on every request as it is meant to
-      # just manually call DryHamlHandlebars.prepare_handlebars if you change/add a helper
-      # see https://github.com/rails/rails/issues/7152
-      DryHamlHandlebars.prepare_handlebars
-    end
+    # config.to_prepare do
+      # # this is only called once in dev mode and not on every request as it is meant to
+      # # just manually call DryHamlHandlebars.prepare_handlebars if you change/add a helper
+      # # see https://github.com/rails/rails/issues/7152
+      # DryHamlHandlebars.prepare_handlebars
+    # end
     
     initializer "dry_haml_handlebars.configure" do |app|
 
@@ -101,7 +101,7 @@ module DryHamlHandlebars
         source = file.read
         source.strip!
         source.chomp!(";")
-        Rails.logger.info "about to run:\nhbs_context.eval(#{source}, #{basename})"
+        Rails.logger.info "about to run:\nhbs_context.eval(#{source[0..50] + '...'}, #{basename})"
         hbs_context.eval(source, basename)
       end
     end
