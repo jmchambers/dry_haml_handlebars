@@ -83,7 +83,7 @@ module DryHamlHandlebars
     
     additional_javascripts = Array.wrap(additional_javascripts)
     
-    compile_all_helper_coffeescripts
+    compile_all_helper_coffeescripts unless ["development", "test"].include?(Rails.env.to_s)
     #load_i18n if defined? SimplesIdeias::I18n
     
     hbs_context = HandlebarsAssets::Handlebars.send(:context)
@@ -145,7 +145,7 @@ module DryHamlHandlebars
       js_path    = File.join(js_directory, filename)
       
       #see if the js exists and is older than the coffee
-      unless File.exist?(js_path) and File.mtime(js_path) > File.mtime(coffee_path)
+      unless File.exist?(js_path) and File.mtime(js_path) >= File.mtime(coffee_path)
         
         #if so, compile coffee and overwrite/create the js
         coffee     = File.read(coffee_path)
