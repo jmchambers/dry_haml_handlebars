@@ -96,13 +96,6 @@ module DryHamlHandlebars
           env = #{env}
         INFO_STRING
         
-        if [:development, :test].include?(env)
-          Rails.logger.info <<-INFO_STRING
-            File.mtime(compiled_template_path) = #{File.mtime(compiled_template_path)}
-            File.mtime(template.identifier) = #{File.mtime(template.identifier)}
-          INFO_STRING
-        end
-        
         if options[:force_handlebars_compile] or !File.exist?(compiled_template_path) or ( [:development, :test].include?(env) and ( File.mtime(compiled_template_path) < File.mtime(template.identifier) ) )
           source = template.source
           source = DryHamlHandlebars.dedent_hbs(source)
