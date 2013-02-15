@@ -83,7 +83,7 @@ module DryHamlHandlebars
     
     additional_javascripts = Array.wrap(additional_javascripts)
     
-    compile_all_helper_coffeescripts unless ["development", "test"].include?(Rails.env.to_s)
+    compile_all_helper_coffeescripts if ["development", "test"].include?(Rails.env.to_s)
     #load_i18n if defined? SimplesIdeias::I18n
     
     hbs_context = HandlebarsAssets::Handlebars.send(:context)
@@ -93,15 +93,12 @@ module DryHamlHandlebars
 
     self_loading_assets = templates_and_partials + handlebars_helpers + additional_javascripts
     
-    Rails.logger.info "self_loading_assets = #{self_loading_assets}"
-
     self_loading_assets.each do |fname|
       basename = File.basename(fname)
       File.open(fname) do |file|
         source = file.read
         source.strip!
         source.chomp!(";")
-        Rails.logger.info "about to run:\nhbs_context.eval(#{source[0..50] + '...'}, #{basename})"
         hbs_context.eval(source, basename)
       end
     end

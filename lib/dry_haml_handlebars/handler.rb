@@ -307,7 +307,6 @@ module DryHamlHandlebars
     
     def write_asset_files
       <<-RUBY
-        Rails.logger.info "WRITING TEMPLATES TO FILE SYSTEM (#{@template_path})"
         File.open('#{@template_path}',          'w+') {|f| f.write(rendered_haml) }
         File.open('#{@compiled_template_path}', 'w+') {|f| f.write(hbs_loader) }
       RUBY
