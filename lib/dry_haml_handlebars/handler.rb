@@ -89,12 +89,12 @@ module DryHamlHandlebars
         partial_name = [relative_view_path.gsub('/', '_'), view_name[1..-1]].join('_')
         rabl_path, template_path, compiled_template_path = generate_file_names(relative_view_path, view_name)
         
-        Rails.logger.info <<-INFO_STRING
-          template_path = #{template_path}
-          options[:force_handlebars_compile] = #{options[:force_handlebars_compile]}
-          File.exist?(compiled_template_path) = #{File.exist?(compiled_template_path)}
-          env = #{env}
-        INFO_STRING
+        # Rails.logger.info <<-INFO_STRING
+          # template_path = #{template_path}
+          # options[:force_handlebars_compile] = #{options[:force_handlebars_compile]}
+          # File.exist?(compiled_template_path) = #{File.exist?(compiled_template_path)}
+          # env = #{env}
+        # INFO_STRING
         
         if options[:force_handlebars_compile] or !File.exist?(compiled_template_path) or ( [:development, :test].include?(env) and ( File.mtime(compiled_template_path) < File.mtime(template.identifier) ) )
           source = template.source
